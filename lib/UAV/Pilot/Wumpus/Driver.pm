@@ -75,11 +75,8 @@ sub connect
     $self->_init_connection;
 
     my $startup_request = UAV::Pilot::Wumpus::PacketFactory->fresh_packet(
-        'RequestStartupMessage' );
-    # TODO find out what Ardupilot wants for these params
-    $startup_request->system_type( 0x00 );
-    $startup_request->system_id( 0x00 );
-    $logger->info( 'Sending RequestStartupMessage packet' );
+        'StartupRequest' );
+    $logger->info( 'Sending StartupRequest packet' );
     $self->_send_packet( $startup_request );
 
     return 1;
@@ -122,68 +119,13 @@ sub _init_connection
     return 1;
 }
 
-sub _packet_queue_size
-{
-    my ($self) = @_;
-    return scalar keys %{ $self->_packet_queue };
-}
-
 sub _send_packet
 {
     my ($self, $packet) = @_;
     $packet->make_checksum_clean;
     $packet->write( $self->_socket );
-    $self->_add_to_packet_queue( $packet );
-    return 1;
-}
-
-sub _process_ack
-{
-    my ($self, $ack) = @_;
-
-    my $key = $ack->make_ack_packet_queue_key;
-    $self->_logger->info( "Processing ack packet with key [$key]" );
-
-    my $orig_packet = delete $self->_packet_queue->{$key};
-    if( defined $orig_packet ) {
-        $self->_ack_callback->( $orig_packet, $ack )
-    }
-    else {
-        $self->_logger->warn( "Received Ack packet for key $key, but couldn't"
-            . " find a matching packet" );
-    }
 
     return 1;
-}
-
-sub _add_to_packet_queue
-{
-    my ($self, $packet) = @_;
-
-    my $key = $packet->make_packet_queue_map_key;
-    $self->_logger->info( "Adding packet to queue for key $key" );
-
-    $self->_reduce_queue_length_to_max;
-    $self->_packet_queue->{$key} = $packet;
-
-    return 1;
-}
-
-sub _reduce_queue_length_to_max
-{
-    my ($self) = @_;
-
-    my @keys = keys %{ $self->_packet_queue };
-    my $packets_removed = 0;
-    while( scalar(@keys) >= $self->MAX_PACKET_QUEUE_LENGTH ) {
-        my $next_key = shift @keys;
-        $self->_logger->warn( "Queue too large, removing packet $next_key" );
-
-        delete $self->_packet_queue->{$next_key};
-        $packets_removed++;
-    }
-
-    return $packets_removed;
 }
 
 

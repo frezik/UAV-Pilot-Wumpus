@@ -44,21 +44,6 @@ sub _init_connection
     return 1;
 }
 
-after '_send_packet' => sub {
-    my ($self, $packet) = @_;
-    $packet->make_checksum_clean;
-    $self->_add_to_packet_queue( $packet );
-
-    my $ack = UAV::Pilot::Wumpus::PacketFactory->fresh_packet( 'Ack' );
-    $ack->message_received_id( $packet->message_id );
-    $ack->checksum_received1( $packet->checksum1 );
-    $ack->checksum_received2( $packet->checksum2 );
-    $ack->make_checksum_clean;
-
-    $self->_process_ack( $ack );
-    return 1;
-};
-
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
