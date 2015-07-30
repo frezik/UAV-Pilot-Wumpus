@@ -73,6 +73,7 @@ sub payload_length
 {
     my ($self) = @_;
     my $base_len = $self->base_payload_length;
+    use bytes;
     return $base_len + bytes::length( $self->payload );
 }
 

@@ -27,24 +27,14 @@ use v5.14;
 use Moose;
 use namespace::autoclean;
 
-
 use constant {
-    payload_length => 1,
-    message_id     => 0x04,
+    payload_length => 0,
+    message_id     => 0x05,
     payload_fields => [qw{
-        ok
     }],
     payload_fields_length => {
-        ok => 1,
     },
 };
-
-
-has 'ok' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-
 
 with 'UAV::Pilot::Wumpus::Packet';
 

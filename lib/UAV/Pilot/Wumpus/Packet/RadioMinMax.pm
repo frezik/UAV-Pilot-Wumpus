@@ -21,7 +21,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-package UAV::Pilot::Wumpus::Packet::RadioMaxes;
+package UAV::Pilot::Wumpus::Packet::RadioMinMax;
 
 use v5.14;
 use Moose;
@@ -40,6 +40,14 @@ use constant {
         ch6_max
         ch7_max
         ch8_max
+        ch9_max
+        ch10_max
+        ch11_max
+        ch12_max
+        ch13_max
+        ch14_max
+        ch15_max
+        ch16_max
         ch1_min
         ch2_min
         ch3_min
@@ -48,6 +56,14 @@ use constant {
         ch6_min
         ch7_min
         ch8_min
+        ch9_min
+        ch10_min
+        ch11_min
+        ch12_min
+        ch13_min
+        ch14_min
+        ch15_min
+        ch16_min
     }],
     payload_fields_length => {
         ch1_max => 2,
@@ -58,6 +74,14 @@ use constant {
         ch6_max => 2,
         ch7_max => 2,
         ch8_max => 2,
+        ch9_max => 2,
+        ch10_max => 2,
+        ch11_max => 2,
+        ch12_max => 2,
+        ch13_max => 2,
+        ch14_max => 2,
+        ch15_max => 2,
+        ch16_max => 2,
         ch1_min => 2,
         ch2_min => 2,
         ch3_min => 2,
@@ -66,6 +90,14 @@ use constant {
         ch6_min => 2,
         ch7_min => 2,
         ch8_min => 2,
+        ch9_min => 2,
+        ch10_min => 2,
+        ch11_min => 2,
+        ch12_min => 2,
+        ch13_min => 2,
+        ch14_min => 2,
+        ch15_min => 2,
+        ch16_min => 2,
     },
 };
 
@@ -101,6 +133,38 @@ has 'ch8_max' => (
     is  => 'rw',
     isa => 'Int',
 );
+has 'ch9_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch10_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch11_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch12_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch13_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch14_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch15_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch16_max' => (
+    is  => 'rw',
+    isa => 'Int',
+);
 has 'ch1_min' => (
     is  => 'rw',
     isa => 'Int',
@@ -130,6 +194,38 @@ has 'ch7_min' => (
     isa => 'Int',
 );
 has 'ch8_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch9_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch10_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch11_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch12_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch13_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch14_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch15_min' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch16_min' => (
     is  => 'rw',
     isa => 'Int',
 );

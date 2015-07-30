@@ -21,7 +21,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 70;
+use Test::More tests => 94;
 use strict;
 use warnings;
 use UAV::Pilot::Wumpus::PacketFactory;
@@ -99,36 +99,28 @@ ok(! $fresh_packet->_is_checksum_clean, "Checksum no longer correct" );
 my $expect_packet = make_packet( 'BF24', '00', '07', '00000004', '62cf', '01DC7FFB' );
 my $got_packet = to_hex_string( write_packet( $fresh_packet ) );
 cmp_ok( $got_packet, 'eq', to_hex_string($expect_packet),
-    "Wrote heartbeat packet" );
+    "Wrote status packet" );
 ok( $fresh_packet->_is_checksum_clean, "Checksum clean after write" );
 
 
-local $TODO = "Individual packet type tests not yet implemented";
 my @TESTS = (
     # Each entry has 2 tests plus the number of keys in 'fields'
     {
-        expect_class => 'RequestStartupMessage',
-        packet => make_packet( 'BF24', '02', '07', '00', '0A', 'A0',
-            'B3', 'DA' ),
+        expect_class => 'StartupRequest',
+        packet => make_packet( 'BF24', '00', '05', '00000000', '050A' ),
+        fields => {},
+    },
+    {
+        expect_class => 'Startup',
+        packet => make_packet( 'BF24', '00', '04', '00000001',
+            '060F', '01' ),
         fields => {
-            system_type => 0x0A,
-            system_id   => 0xA0,
+            ok => 0x01,
         },
     },
     {
-        expect_class => 'StartupMessage',
-        packet => make_packet( 'BF24', '05', '08', '00',
-            '0A', 'A0', 'B0', '0B', 'C0',
-            '32', 'F8' ),
-        fields => {
-            system_type      => 0x0A,
-            system_id        => 0xA0,
-            firmware_version => 0xB00BC0,
-        },
-    },
-    {
-        expect_class => 'RadioTrims',
-        packet => make_packet( 'BF24', '10', '50', '00',
+        expect_class => 'RadioMinMax',
+        packet => make_packet( 'BF24', '00', '02', '00000040', '72A4',
             '0A', 'A0',
             '0B', 'B0',
             '0C', 'C0',
@@ -137,22 +129,6 @@ my @TESTS = (
             '0F', 'F0',
             '00', '00',
             '01', '10',
-            '6C', 'A8',
-        ),
-        fields => {
-            ch1_trim => 0x0AA0,
-            ch2_trim => 0x0BB0,
-            ch3_trim => 0x0CC0,
-            ch4_trim => 0x0DD0,
-            ch5_trim => 0x0EE0,
-            ch6_trim => 0x0FF0,
-            ch7_trim => 0x0000,
-            ch8_trim => 0x0110,
-        },
-    },
-    {
-        expect_class => 'RadioMins',
-        packet => make_packet( 'BF24', '10', '51', '00',
             '0A', 'A0',
             '0B', 'B0',
             '0C', 'C0',
@@ -161,7 +137,22 @@ my @TESTS = (
             '0F', 'F0',
             '00', '00',
             '01', '10',
-            '6D', 'BA',
+            '0A', 'A0',
+            '0B', 'B0',
+            '0C', 'C0',
+            '0D', 'D0',
+            '0E', 'E0',
+            '0F', 'F0',
+            '00', '00',
+            '01', '10',
+            '0A', 'A0',
+            '0B', 'B0',
+            '0C', 'C0',
+            '0D', 'D0',
+            '0E', 'E0',
+            '0F', 'F0',
+            '00', '00',
+            '01', '10',
         ),
         fields => {
             ch1_min => 0x0AA0,
@@ -172,22 +163,14 @@ my @TESTS = (
             ch6_min => 0x0FF0,
             ch7_min => 0x0000,
             ch8_min => 0x0110,
-        },
-    },
-    {
-        expect_class => 'RadioMaxes',
-        packet => make_packet( 'BF24', '10', '52', '00',
-            '0A', 'A0',
-            '0B', 'B0',
-            '0C', 'C0',
-            '0D', 'D0',
-            '0E', 'E0',
-            '0F', 'F0',
-            '00', '00',
-            '01', '10',
-            '6E', 'CC',
-        ),
-        fields => {
+            ch9_min => 0x0AA0,
+            ch10_min => 0x0BB0,
+            ch11_min => 0x0CC0,
+            ch12_min => 0x0DD0,
+            ch13_min => 0x0EE0,
+            ch14_min => 0x0FF0,
+            ch15_min => 0x0000,
+            ch16_min => 0x0110,
             ch1_max => 0x0AA0,
             ch2_max => 0x0BB0,
             ch3_max => 0x0CC0,
@@ -196,11 +179,19 @@ my @TESTS = (
             ch6_max => 0x0FF0,
             ch7_max => 0x0000,
             ch8_max => 0x0110,
+            ch9_max => 0x0AA0,
+            ch10_max => 0x0BB0,
+            ch11_max => 0x0CC0,
+            ch12_max => 0x0DD0,
+            ch13_max => 0x0EE0,
+            ch14_max => 0x0FF0,
+            ch15_max => 0x0000,
+            ch16_max => 0x0110,
         },
     },
     {
         expect_class => 'RadioOutputs',
-        packet => make_packet( 'BF24', '10', '53', '00',
+        packet => make_packet( 'BF24', '00', '03', '00000020', '3BF6',
             '0A', 'A0',
             '0B', 'B0',
             '0C', 'C0',
@@ -209,7 +200,14 @@ my @TESTS = (
             '0F', 'F0',
             '00', '00',
             '01', '10',
-            '6F', 'DE',
+            '0A', 'A0',
+            '0B', 'B0',
+            '0C', 'C0',
+            '0D', 'D0',
+            '0E', 'E0',
+            '0F', 'F0',
+            '00', '00',
+            '01', '10',
         ),
         fields => {
             ch1_out => 0x0AA0,
@@ -220,10 +218,56 @@ my @TESTS = (
             ch6_out => 0x0FF0,
             ch7_out => 0x0000,
             ch8_out => 0x0110,
+            ch9_out => 0x0AA0,
+            ch10_out => 0x0BB0,
+            ch11_out => 0x0CC0,
+            ch12_out => 0x0DD0,
+            ch13_out => 0x0EE0,
+            ch14_out => 0x0FF0,
+            ch15_out => 0x0000,
+            ch16_out => 0x0110,
+        },
+    },
+    {
+        expect_class => 'AckRequest',
+        packet => make_packet( 'BF24', '00', '01', '00000004', '0B27',
+            '01010202', ),
+        fields => {
+            payload_data => 0x01010202,
+        },
+    },
+    {
+        expect_class => 'Ack',
+        packet => make_packet( 'BF24', '00', '00', '00000002', '0409',
+            '0101', ),
+        fields => {
+            checksum_received=> 0x0101,
+        },
+    },
+    {
+        expect_class => 'VideoStream',
+        packet => make_packet( 'BF24', '00', '06', '0000000A', 'DB95',
+            '00', '0010', '0010', '11223344', '01', ),
+        fields => {
+            codec => 0x00,
+            width => 0x0010,
+            height => 0x0010,
+            adler32_checksum => 0x11223344,
+            payload => 0x01,
+        },
+    },
+    {
+        expect_class => 'Status',
+        packet => make_packet( 'BF24', '00', '07', '00000004', '62CF', '01DC7FFB' ),
+        fields => {
+            flags => 0x01,
+            batt_level => 0xDC,
+            shield_level => 0x7FFB,
         },
     },
 );
 my $CLASS_PREFIX = 'UAV::Pilot::Wumpus::Packet::';
+my $test_i = 0;
 foreach (@TESTS) {
     my $packet_data = $_->{packet};
     my %fields = %{ $_->{fields} };
@@ -245,11 +289,11 @@ foreach (@TESTS) {
         "$short_class writes packet correctly" );
 }
 
-my $too_long_packet = make_packet( 'BF24', '07', '01', '00', '01123401C20000',
-    '12', '10', '0000' );
+my $too_long_packet = make_packet( 'BF24', '00', '01', '00000000', '0102', 
+    '01123401C20000' );
 my $long_packet = UAV::Pilot::Wumpus::PacketFactory->read_packet(
     $too_long_packet );
-cmp_ok( $long_packet->checksum, '==', 0x12,
+cmp_ok( $long_packet->checksum, '==', 0x0102,
     'Checksum correct for long packet' );
 
 

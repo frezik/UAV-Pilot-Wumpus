@@ -29,27 +29,22 @@ use namespace::autoclean;
 
 
 use constant {
-    payload_length => 0,
-    message_id     => 0x05,
+    payload_length => 1,
+    message_id     => 0x04,
     payload_fields => [qw{
+        ok
     }],
     payload_fields_length => {
+        ok => 1,
     },
 };
 
 
-has 'system_type' => (
+has 'ok' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'system_id' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'firmware_version' => (
-    is  => 'rw',
-    isa => 'Int',
-);
+
 
 with 'UAV::Pilot::Wumpus::Packet';
 

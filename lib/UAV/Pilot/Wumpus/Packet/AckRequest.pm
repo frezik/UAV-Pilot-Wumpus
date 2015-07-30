@@ -29,12 +29,18 @@ use namespace::autoclean;
 
 
 use constant {
-    payload_length => 7,
+    payload_length => 4,
     message_id     => 0x01,
-    payload_fields => [qw{ }],
+    payload_fields => [qw{ payload_data }],
     payload_fields_length => {
+        payload_data => 4,
     },
 };
+
+has 'payload_data' => (
+    is => 'rw',
+    isa => 'Int',
+);
 
 
 with 'UAV::Pilot::Wumpus::Packet';

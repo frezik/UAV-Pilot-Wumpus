@@ -29,7 +29,7 @@ use namespace::autoclean;
 
 
 use constant {
-    payload_length => 16,
+    payload_length => 32,
     message_id     => 0x03,
     payload_fields => [qw{
         ch1_out
@@ -40,6 +40,14 @@ use constant {
         ch6_out
         ch7_out
         ch8_out
+        ch9_out
+        ch10_out
+        ch11_out
+        ch12_out
+        ch13_out
+        ch14_out
+        ch15_out
+        ch16_out
     }],
     payload_fields_length => {
         ch1_out => 2,
@@ -50,6 +58,14 @@ use constant {
         ch6_out => 2,
         ch7_out => 2,
         ch8_out => 2,
+        ch9_out => 2,
+        ch10_out => 2,
+        ch11_out => 2,
+        ch12_out => 2,
+        ch13_out => 2,
+        ch14_out => 2,
+        ch15_out => 2,
+        ch16_out => 2,
     },
 };
 
@@ -82,6 +98,38 @@ has 'ch7_out' => (
     isa => 'Int',
 );
 has 'ch8_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch9_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch10_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch11_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch12_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch13_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch14_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch15_out' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+has 'ch16_out' => (
     is  => 'rw',
     isa => 'Int',
 );
