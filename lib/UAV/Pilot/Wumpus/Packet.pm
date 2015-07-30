@@ -22,6 +22,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus::Packet;
+
 use v5.14;
 use Moose::Role;
 
@@ -33,22 +34,17 @@ use constant _PACKET_QUEUE_MAP_KEY_SEPERATOR => '|';
 has 'preamble' => (
     is      => 'rw',
     isa     => 'Int',
-    default => 0x3444,
+    default => 0xBF24,
 );
 has 'version' => (
     is      => 'rw',
     isa     => 'Int',
     default => 0x00,
 );
-has 'checksum1' => (
+has 'checksum' => (
     is     => 'ro',
     isa    => 'Int',
-    writer => '_set_checksum1',
-);
-has 'checksum2' => (
-    is     => 'ro',
-    isa    => 'Int',
-    writer => '_set_checksum2',
+    writer => '_set_checksum',
 );
 has '_is_checksum_clean' => (
     is      => 'rw',
@@ -79,9 +75,13 @@ before 'BUILDARGS' => sub {
         my $length = $payload_fields_length{$field} // 1;
 
         my $value = 0;
-        foreach (1 .. $length) {
-            $value <<= 8;
-            $value |= shift @payload;
+        $length = scalar(@payload)
+            if $length == -1;
+        if( $length > 0 ) {
+            foreach (1 .. $length) {
+                $value <<= 8;
+                $value |= shift @payload;
+            }
         }
 
         $args->{$field} = $value;
@@ -105,14 +105,13 @@ sub write
 sub make_byte_vector
 {
     my ($self) = @_;
-    my $packet = pack 'n C*',
+    my $packet = pack 'n C C N n C*',
         $self->preamble,
-        $self->payload_length,
-        $self->message_id,
         $self->version,
-        $self->get_ordered_payload_value_bytes,
-        $self->checksum1,
-        $self->checksum2;
+        $self->message_id,
+        $self->payload_length,
+        $self->checksum,
+        $self->get_ordered_payload_value_bytes;
     return $packet;
 }
 
@@ -135,6 +134,8 @@ sub get_ordered_payload_value_bytes
         my $length = $payload_fields_length{$field} // 1;
 
         my $raw_value = $self->$field;
+        $length = bytes::length( $raw_value )
+            if $length == -1;
         my @raw_bytes;
         foreach (1 .. $length) {
             if( defined $raw_value) {
@@ -157,15 +158,15 @@ sub _calc_checksum
 {
     my ($self) = @_;
     my @data = (
-        $self->payload_length,
-        $self->message_id,
         $self->version,
+        $self->message_id,
+        $self->payload_length,
         $self->get_ordered_payload_value_bytes,
     );
 
     my ($check1, $check2) = UAV::Pilot->checksum_fletcher8( @data );
-    $self->_set_checksum1( $check1 );
-    $self->_set_checksum2( $check2 );
+    my $checksum = ($check1 << 8) | $check2;
+    $self->_set_checksum( $checksum );
     return 1;
 }
 
@@ -185,8 +186,7 @@ sub make_packet_queue_map_key
     # Packet::Ack::make_ack_packet_queue_key()
     my $key = join( $self->_PACKET_QUEUE_MAP_KEY_SEPERATOR,
         $self->message_id,
-        $self->checksum1,
-        $self->checksum2,
+        $self->checksum,
     );
     return $key;
 }
@@ -209,13 +209,7 @@ __END__
 
 =head1 DESCRIPTION
 
-Role for WumpusRover packets.  These are based on the ArduPilot protocol 
-packets, as described here:
-
-L<http://code.google.com/p/ardupilot-mega/wiki/Protocol>
-
-No attempts have yet been made to test this against an existing ArduPilot 
-implmentation, but it should be close.
+Role for Wumpus packets.  This is a custom protocol, documented below.
 
 Do not create Packets directly.  Instead, use
 C<UAV::Pilot::Wumpus::PacketFactory>.
@@ -261,13 +255,9 @@ Fixed bytes that start every packet
 
 Protocol version
 
-=head2 checksum1
+=head2 checksum
 
-First checksum byte
-
-=head2 checksum2
-
-Second checksum byte
+Checksum value
 
 =head1 REQUIRED METHODS/ATTRIBUTES
 
@@ -283,5 +273,165 @@ Arrayref.  A list of field names in the order they appear in the packet.
 
 Hashref.  Keys match to an entry in C<payload_fields>.  Values are the length 
 in bytes of that field.
+
+=head1 PROTOCOL
+
+Each data packet starts with a 32-bit magic number (C<0xBF24>), which 
+is followed by:
+
+=over 4
+
+=item * 1 byte - Version (this document is version 0x00)
+
+=item * 1 byte - Message ID
+
+=item * 4 bytes - Length of payload
+
+=item * 2 bytes - Checksum of payload
+
+=item * I<n> bytes - Payload
+
+=back
+
+The Message IDs are documented below.  The checksum field is calculated 
+by taking the bytes of the fields for version, message ID, length, 
+and payload,  and running Fletcher16 on them.
+
+A session starts by the client sending a StartupRequest to the server. 
+On getting a Startup response, the client should then send a RadioMinMax, 
+followed by RadioOutput messages. During this time, the server can be 
+sending Status and VideoStream messages. Either side may also send a 
+AckRequest at any time, with the receiving end replying with Ack in a 
+timely fashion.
+
+=head2 Message IDs
+
+=head3 0x00 Ack
+
+Length 2. The response to an AckRequest.  Contains:
+
+2 bytes - The checksum of the AckRequest being responded to.
+
+=head3 0x01 AckRequest
+
+Length 4. Requests that the reciever send an Ack in response. Contains:
+
+4 bytes - Random data. This just gives something for the checksum to use.
+
+=head3 0x02 RadioMinMax
+
+Length 64. Sends the min/max values that will be sent by each channel. 
+Contains:
+
+=over 4 
+
+=item * 2 bytes - ch1 min
+
+=item * 2 bytes - ch2 min
+
+=back
+
+...
+
+=over 4
+
+=item * 2 bytes - ch16 min
+
+=item * 2 bytes - ch1 max
+
+=back
+
+...
+
+=over 4
+
+=item * 2 bytes - ch16 max
+
+=back
+
+=head3 0x03 RadioOutputs
+
+Length 32. Sends the current outputs for each channel. Contains:
+
+=over 4
+
+=item * 2 bytes - ch1 out
+
+=item * 2 bytes - ch2 out
+
+=back
+
+...
+
+=over 4
+
+=item * 2 bytes - ch16 out
+
+=back
+
+=head3 0x04 Startup
+
+Length 1. A response to a StartupRequest of the startup going well or not.
+Contains:
+
+1 byte - 0 = BAD, 1 = OK
+
+=head3 0x05 StartupRequest
+
+Length 0. Requests the server startup.
+
+=head3 0x06 VideoStream
+
+Length 9 + I<n>. A frame of video data.  Contains:
+
+=over 4
+
+=item * 1 byte - Codec ID. 0 = NULL, 1 = h.264, 2 = JPEG, other values reserved
+
+=item * 2 bytes - Width
+
+=item * 2 bytes - Height
+
+=item * 4 bytes - Adler32 checksum of video data
+
+=item * I<n> bytes - Video data
+
+=back
+
+=head3 0x07 Status
+
+Length 4. Gives the current status. Contains:
+
+=over 4
+
+=item * 1 byte - Flags (see below)
+
+=item * 1 byte - Battery level
+
+=item * 2 bytes - Shield level
+
+=back
+
+Each bit of the flags field is:
+
+=over 4
+
+=item 0 Took a hit since last Status
+
+=item 1 (Reserved)
+
+=item 2 (Reserved)
+
+=item 3 (Reserved)
+
+=item 4 (Reserved)
+
+=item 5 (Reserved)
+
+=item 6 (Reserved)
+
+=item 7 (Reserved)
+
+=back
 
 =cut

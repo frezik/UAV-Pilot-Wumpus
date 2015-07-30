@@ -22,32 +22,33 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus::PacketFactory;
+
 use v5.14;
 use warnings;
 use UAV::Pilot;
-use UAV::Pilot::Exceptions;
+use UAV::Pilot::Wumpus::Exceptions;
 use UAV::Pilot::Wumpus::Packet;
 use UAV::Pilot::Wumpus::Packet::Ack;
-use UAV::Pilot::Wumpus::Packet::Heartbeat;
-use UAV::Pilot::Wumpus::Packet::RequestStartupMessage;
-use UAV::Pilot::Wumpus::Packet::StartupMessage;
-use UAV::Pilot::Wumpus::Packet::RadioTrims;
-use UAV::Pilot::Wumpus::Packet::RadioMins;
-use UAV::Pilot::Wumpus::Packet::RadioMaxes;
+use UAV::Pilot::Wumpus::Packet::AckRequest;
+use UAV::Pilot::Wumpus::Packet::RadioMinMax;
 use UAV::Pilot::Wumpus::Packet::RadioOutputs;
+use UAV::Pilot::Wumpus::Packet::Startup;
+use UAV::Pilot::Wumpus::Packet::StartupRequest;
+use UAV::Pilot::Wumpus::Packet::Status;
+use UAV::Pilot::Wumpus::Packet::VideoStream;
 
 
 use constant PACKET_CLASS_PREFIX  => 'UAV::Pilot::Wumpus::Packet::';
-use constant PREAMBLE             => 0x3444;
+use constant PREAMBLE             => 0xBF24;
 use constant MESSAGE_ID_CLASS_MAP => {
     0x00 => 'Ack',
-    0x01 => 'Heartbeat',
-    0x07 => 'RequestStartupMessage',
-    0x08 => 'StartupMessage',
-    0x50 => 'RadioTrims',
-    0x51 => 'RadioMins',
-    0x52 => 'RadioMaxes',
-    0x53 => 'RadioOutputs',
+    0x01 => 'AckRequest',
+    0x02 => 'RadioMinMax',
+    0x03 => 'RadioOutputs',
+    0x04 => 'Startup',
+    0x05 => 'StartupRequest',
+    0x06 => 'VideoStream',
+    0x07 => 'Status',
 };
 
 
@@ -57,27 +58,30 @@ sub read_packet
     my @packet = unpack 'C*', $packet;
 
     my $preamble       = ($packet[0] << 8 ) | $packet[1];
-    UAV::Pilot::ArdupilotPacketException::BadHeader->throw({
+    UAV::Pilot::Wumpus::Exception::BadHeader->throw({
         got_header => $preamble,
     }) if $self->PREAMBLE != $preamble;
 
-    my $payload_length = $packet[2];
-    my $message_id     = $packet[3];
-    my $version        = $packet[4];
+    my $version = $packet[2];
+    my $message_id = $packet[3];
+    my $payload_length = ($packet[4] << 24)
+        | ($packet[5] << 16)
+        | ($packet[6] << 8)
+        | $packet[7];
+    my $checksum = ($packet[8] << 8) | $packet[9];
+    my $last_payload_i = (10 + $payload_length) - 1;
+    my @payload = $last_payload_i >= 10
+        ? @packet[10 .. $last_payload_i]
+        : ();
 
-    my $last_payload_i = 4 + $payload_length;
-    my @payload        = @packet[5..$last_payload_i];
-    my $checksum1      = $packet[$last_payload_i + 1];
-    my $checksum2      = $packet[$last_payload_i + 2];
-
-    my ($expect_checksum1, $expect_checksum2) = UAV::Pilot->checksum_fletcher8(
-        $payload_length, $message_id, $version, @payload );
-    UAV::Pilot::ArdupilotPacketException::BadChecksum->throw({
-        got_checksum1      => $checksum1,
-        got_checksum2      => $checksum2,
-        expected_checksum1 => $expect_checksum1,
-        expected_checksum2 => $expect_checksum2,
-    }) if ($expect_checksum1 != $checksum1) || ($expect_checksum2 != $checksum2);
+    my ($expect_checksum1, $expect_checksum2)
+        = UAV::Pilot->checksum_fletcher8(
+            $version, $message_id, $payload_length, @payload );
+    my $expect_checksum = ($expect_checksum1 << 8) | $expect_checksum2;
+    UAV::Pilot::Wumpus::Exception::BadChecksum->throw({
+        got_checksum => $checksum,
+        expected_checksum => $expect_checksum,
+    }) if $expect_checksum != $checksum;
 
     if(! exists $self->MESSAGE_ID_CLASS_MAP->{$message_id}) {
         warn sprintf( 'No class found for message ID 0x%02x', $message_id )
@@ -89,8 +93,7 @@ sub read_packet
     my $new_packet = $class->new({
         preamble  => $preamble,
         version   => $version,
-        checksum1 => $checksum1,
-        checksum2 => $checksum2,
+        checksum => $checksum,
         payload   => \@payload,
     });
     return $new_packet;

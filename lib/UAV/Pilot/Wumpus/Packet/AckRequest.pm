@@ -21,34 +21,21 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-package UAV::Pilot::Wumpus::Packet::RequestStartupMessage;
+package UAV::Pilot::Wumpus::Packet::AckRequest;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
 
 
 use constant {
-    payload_length => 2,
-    message_id     => 0x07,
-    payload_fields => [qw{
-        system_type
-        system_id
-    }],
+    payload_length => 7,
+    message_id     => 0x01,
+    payload_fields => [qw{ }],
     payload_fields_length => {
-        system_type => 1,
-        system_id   => 1,
     },
 };
 
-
-has 'system_type' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'system_id' => (
-    is  => 'rw',
-    isa => 'Int',
-);
 
 with 'UAV::Pilot::Wumpus::Packet';
 

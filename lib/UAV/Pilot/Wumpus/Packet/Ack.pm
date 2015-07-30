@@ -22,36 +22,25 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus::Packet::Ack;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
 
 
 use constant {
-    payload_length => 3,
+    payload_length => 2,
     message_id     => 0x00,
     payload_fields => [qw{
-        message_received_id
-        checksum_received1
-        checksum_received2
+        checksum_received
     }],
     payload_fields_length => {
-        message_received_id => 1,
-        checksum_received1  => 1,
-        checksum_received2  => 1,
+        checksum_received => 2,
     },
 };
 
 
-has 'message_received_id' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'checksum_received1' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'checksum_received2' => (
+has 'checksum_received' => (
     is  => 'rw',
     isa => 'Int',
 );
@@ -64,8 +53,7 @@ sub make_ack_packet_queue_key
     my ($self) = @_;
     my $key = join( $self->_PACKET_QUEUE_MAP_KEY_SEPERATOR,
         $self->message_received_id,
-        $self->checksum_received1,
-        $self->checksum_received2,
+        $self->checksum_received,
     );
     return $key;
 }

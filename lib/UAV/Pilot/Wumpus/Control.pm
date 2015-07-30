@@ -22,6 +22,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus::Control;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;

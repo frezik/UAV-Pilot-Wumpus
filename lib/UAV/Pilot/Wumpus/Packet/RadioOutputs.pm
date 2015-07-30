@@ -22,6 +22,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus::Packet::RadioOutputs;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
@@ -29,7 +30,7 @@ use namespace::autoclean;
 
 use constant {
     payload_length => 16,
-    message_id     => 0x53,
+    message_id     => 0x03,
     payload_fields => [qw{
         ch1_out
         ch2_out

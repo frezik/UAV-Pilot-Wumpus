@@ -22,15 +22,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
 package UAV::Pilot::Wumpus;
+
 use v5.14;
 use warnings;
 use Moose;
 use namespace::autoclean;
 
-# ABSTRACT: Control a rover over WiFi with a video feed
+# ABSTRACT: Control a UAV over WiFi with a video feed
 
-use constant DEFAULT_PORT       => 49_000;
-use constant DEFAULT_VIDEO_PORT => 49_001;
+use constant DEFAULT_PORT => 49_050;
 
 
 no Moose;
@@ -44,18 +44,8 @@ __END__
 
 =head1 DESCRIPTION
 
-The WumpusRover was a project started specifically around C<UAV::Pilot>.  The 
-library was always intended to be used on more than just the Parrot AR.Drone.  
-With this addition, it is not only supporting a custom rover project, but also 
-running much of the code on the rover itself.
-
-The protocol is similar to ArduPilot protocol, taken from here:
-
-L<http://code.google.com/p/ardupilot-mega/wiki/Protocol>
-
-No tests were done against an existing ArduPilot implementation, so things may 
-not be 100% compatible.  It should be close, however.  It is a goal to eventually
-be compatible; this will happen Soon(tm).
+Client and base module for the Wumpus UAV.  The network protocol is 
+documented in L<UAV::Pilot::Wumpus::Packet>.
 
 =head1 LICENSE
 

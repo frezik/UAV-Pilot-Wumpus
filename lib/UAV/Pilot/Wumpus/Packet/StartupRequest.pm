@@ -21,27 +21,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 16;
+package UAV::Pilot::Wumpus::Packet::StartupRequest;
+
 use v5.14;
+use Moose;
+use namespace::autoclean;
 
-use_ok( 'UAV::Pilot::Wumpus' );
-use_ok( 'UAV::Pilot::Wumpus::Control' );
-use_ok( 'UAV::Pilot::Wumpus::Driver' );
-use_ok( 'UAV::Pilot::Wumpus::Exceptions' );
-use_ok( 'UAV::Pilot::Wumpus::Packet' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::Ack' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::AckRequest' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::RadioMinMax' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::RadioOutputs' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::Startup' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::StartupRequest' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::VideoStream' );
-use_ok( 'UAV::Pilot::Wumpus::Packet::Status' );
-use_ok( 'UAV::Pilot::Wumpus::PacketFactory' );
-use_ok( 'UAV::Pilot::Wumpus::Video' );
 
-SKIP: {
-    eval "use UAV::Pilot::SDL::Joystick";
-    skip "UAV::Pilot::SDL not installed", 1 if $@;
-    use_ok( 'UAV::Pilot::Wumpus::Control::Event' );
-}
+use constant {
+    payload_length => 1,
+    message_id     => 0x04,
+    payload_fields => [qw{
+        ok
+    }],
+    payload_fields_length => {
+        ok => 1,
+    },
+};
+
+
+has 'ok' => (
+    is  => 'rw',
+    isa => 'Int',
+);
+
+
+with 'UAV::Pilot::Wumpus::Packet';
+
+
+no Moose;
+__PACKAGE__->meta->make_immutable;
+1;
+__END__
+

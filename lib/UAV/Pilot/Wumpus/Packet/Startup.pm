@@ -21,38 +21,32 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-package UAV::Pilot::Wumpus::Packet::Heartbeat;
+package UAV::Pilot::Wumpus::Packet::Startup;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
 
 
 use constant {
-    payload_length => 7,
-    message_id     => 0x01,
-    payload_fields => [qw{ flight_mode timestamp batt command_index }],
+    payload_length => 0,
+    message_id     => 0x05,
+    payload_fields => [qw{
+    }],
     payload_fields_length => {
-        flight_mode   => 1,
-        timestamp     => 2,
-        batt          => 2,
-        command_index => 2,
     },
 };
 
 
-has 'flight_mode' => (
+has 'system_type' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'timestamp' => (
+has 'system_id' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'batt' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'command_index' => (
+has 'firmware_version' => (
     is  => 'rw',
     isa => 'Int',
 );

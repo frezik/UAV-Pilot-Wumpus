@@ -21,69 +21,61 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-package UAV::Pilot::Wumpus::Packet::RadioMins;
+package UAV::Pilot::Wumpus::Packet::VideoStream;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
 
 
 use constant {
-    payload_length => 16,
-    message_id     => 0x51,
+    base_payload_length => 9,
+    message_id     => 0x06,
     payload_fields => [qw{
-        ch1_min
-        ch2_min
-        ch3_min
-        ch4_min
-        ch5_min
-        ch6_min
-        ch7_min
-        ch8_min
+        codec
+        width
+        height
+        adler32_checksum
+        payload
     }],
     payload_fields_length => {
-        ch1_min => 2,
-        ch2_min => 2,
-        ch3_min => 2,
-        ch4_min => 2,
-        ch5_min => 2,
-        ch6_min => 2,
-        ch7_min => 2,
-        ch8_min => 2,
+        codec => 1,
+        width => 2,
+        height => 2,
+        adler32_checksum => 4,
+        payload => -1,
     },
 };
 
-has 'ch1_min' => (
+
+has 'codec' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'ch2_min' => (
+has 'width' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'ch3_min' => (
+has 'height' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'ch4_min' => (
+has 'adler32_checksum' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'ch5_min' => (
+has 'payload' => (
     is  => 'rw',
     isa => 'Int',
 );
-has 'ch6_min' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'ch7_min' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'ch8_min' => (
-    is  => 'rw',
-    isa => 'Int',
-);
+
+sub payload_length
+{
+    my ($self) = @_;
+    my $base_len = $self->base_payload_length;
+    return $base_len + bytes::length( $self->payload );
+}
+
 
 with 'UAV::Pilot::Wumpus::Packet';
 

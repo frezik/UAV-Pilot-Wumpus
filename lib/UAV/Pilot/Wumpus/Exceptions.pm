@@ -21,46 +21,73 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-package UAV::Pilot::Wumpus::Packet::StartupMessage;
+use UAV::Pilot::Exceptions;
+
+package UAV::Pilot::Wumpus::Exception::BadHeader;
+
 use v5.14;
 use Moose;
 use namespace::autoclean;
+extends 'UAV::Pilot::Exception';
 
-
-use constant {
-    payload_length => 5,
-    message_id     => 0x08,
-    payload_fields => [qw{
-        system_type
-        system_id
-        firmware_version
-    }],
-    payload_fields_length => {
-        system_type      => 1,
-        system_id        => 1,
-        firmware_version => 3,
-    },
-};
-
-
-has 'system_type' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'system_id' => (
-    is  => 'rw',
-    isa => 'Int',
-);
-has 'firmware_version' => (
-    is  => 'rw',
+has 'got_header' => (
+    is => 'ro',
     isa => 'Int',
 );
 
-with 'UAV::Pilot::Wumpus::Packet';
+no Moose;
+__PACKAGE__->meta->make_immutable;
+
+
+package UAV::Pilot::Wumpus::Exception::BadChecksum;
+
+use v5.14;
+use Moose;
+use namespace::autoclean;
+extends 'UAV::Pilot::Exception';
+
+
+has 'got_checksum' => (
+    is => 'ro',
+    isa => 'Int',
+);
+has 'expected_checksum' => (
+    is => 'ro',
+    isa => 'Int',
+);
+
+sub to_string
+{
+    my ($self) = @_;
+    return "BadChecksum: Expected checksum ("
+        . $self->expected_checksum . "), got checksum ("
+        . $self->got_checksum . ")";
+}
+
+use overload '""' => \&to_string;
 
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
+
+
 1;
 __END__
 
+
+=head1 NAME
+
+  UAV::Pilot::Wumpus::Exceptions
+
+=head1 DESCRIPTION
+
+Exceptions that could be thrown by C<UAV::Pilot::Wumpus> modules.  All 
+inherit from C<UAV::Pilot::Exception>, which does the role C<Throwable>.
+
+=head1 EXCEPTIONS
+
+=head2 UAV::Pilot::Wumpus::Exception::BadHeader
+
+=head2 UAV::Pilot::Wumpus::Exception::BadChecksum
+
+=cut
