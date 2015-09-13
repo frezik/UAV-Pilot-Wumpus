@@ -48,6 +48,16 @@ has 'checksum_received' => (
 with 'UAV::Pilot::Wumpus::Packet';
 
 
+sub make_ack_packet_queue_key
+{
+    my ($self) = @_;
+    my $key = join( $self->_PACKET_QUEUE_MAP_KEY_SEPERATOR,
+        $self->checksum_received,
+    );
+    return $key;
+}
+
+
 no Moose;
 __PACKAGE__->meta->make_immutable;
 1;

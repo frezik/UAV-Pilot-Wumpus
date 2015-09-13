@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+use v5.14;
+use warnings;
+use AnyEvent;
+use UAV::Pilot;
+use UAV::Pilot::EasyEvent;
+use UAV::Pilot::SDL::Events;
+use UAV::Pilot::SDL::Joystick;
+use UAV::Pilot::Wumpus;
+use UAV::Pilot::Wumpus::PacketFactory;
+use UAV::Pilot::Wumpus::Packet;
+use UAV::Pilot::Wumpus::Driver;
+use UAV::Pilot::Wumpus::Control::Event;
+use Getopt::Long ();
+
+
+my $PORT = UAV::Pilot::Wumpus->DEFAULT_PORT;
+my $HOST = '10.0.0.16';
+my $CONF_FILE = UAV::Pilot->default_config_dir . '/wumpus_joystick.yml';
+Getopt::Long::GetOptions(
+    'port=i' => \$PORT,
+    'host=s' => \$HOST,
+    'conf=s' => \$CONF_FILE,
+);
+
+
+my $driver = UAV::Pilot::Wumpus::Driver->new({
+    host => $HOST,
+    port => $PORT,
+});
+$driver->connect;
+
+my $cv = AnyEvent->condvar;
+my $event = UAV::Pilot::EasyEvent->new({
+    condvar => $cv,
+});
+my $control = UAV::Pilot::Wumpus::Control::Event->new({
+    driver => $driver,
+});
+$control->init_event_loop( $cv, $event );
+
+
+my $joy = UAV::Pilot::SDL::Joystick->new({
+    condvar => $cv,
+    events => $event,
+    conf_path => $CONF_FILE,
+});
+my $sdl_events = UAV::Pilot::SDL::Events->new({
+    condvar => $cv,
+});
+$sdl_events->register( $joy );
+
+
+$event->add_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, sub {
+    my ($args) = @_;
+    my $joystick_num = $args->{joystick_num};
+    my $roll         = $args->{roll};
+    my $pitch        = $args->{pitch};
+    my $yaw          = $args->{yaw};
+    my $throttle     = $args->{throttle};
+    my @buttons      = @{ $args->{buttons} };
+
+    $control->throttle( $args->{throttle} );
+    $control->roll( $args->{roll} );
+    $control->pitch( $args->{pitch} );
+    $control->yaw( $args->{yaw} );
+
+    return 1;
+});
+
+
+$cv->recv;

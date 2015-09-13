@@ -1,0 +1,90 @@
+#!perl
+# Copyright (c) 2015  Timm Murray
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+# 
+#     * Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright 
+#       notice, this list of conditions and the following disclaimer in the 
+#       documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+use v5.14;
+use warnings;
+use UAV::Pilot::Wumpus;
+use UAV::Pilot::Wumpus::PacketFactory;
+use UAV::Pilot::Wumpus::Packet;
+use IO::Socket::INET;
+
+my $UDP_PORT = UAV::Pilot::Wumpus->DEFAULT_PORT;
+
+
+sub make_socket
+{
+    my ($port) = @_;
+    say "Creating UDP socket on port $port";
+
+    my $socket = IO::Socket::INET->new(
+        LocalPort => $port,
+        Proto => 'udp',
+        #Listen => 1,
+    ) or die "Couldn't create socket: $@\n";
+
+    return $socket;
+}
+
+sub main_loop
+{
+    my ($socket) = @_;
+
+    my $startup_happened = 0;
+    while(1) {
+        say "Waiting on next packet . . . ";
+        # TODO this won't handle long packets (like vid frames)
+        if( my $len = $socket->read( my $buf, 64 ) ) {
+            my $packet = UAV::Pilot::Wumpus::PacketFactory->read_packet(
+                $buf );
+
+            my $ret_packet;
+            if( $packet->isa(
+                'UAV::Pilot::Wumpus::Packet::StartupRequest' ) ) {
+                $startup_happened = 1;
+                $ret_packet = UAV::Pilot::Wumpus::PacketFactory
+                    ->fresh_packet( 'Startup' );
+                $ret_packet->ok( 1 );
+            }
+            elsif( $packet->isa(
+                'UAV::Pilot::Wumpus::Packet::AckRequest' ) ) {
+                $ret_packet = UAV::Pilot::Wumpus::PacketFactory
+                    ->fresh_packet( 'Ack' );
+                $ret_packet->checksum_received( $packet->checksum );
+            }
+
+            say "Recived packet: " . ref $packet;
+            if( defined $ret_packet ) {
+                say "Returning packet: " . ref $ret_packet;
+                $ret_packet->write( $socket );
+            }
+        }
+    }
+    return 1;
+}
+
+
+{
+    my $socket = make_socket( $UDP_PORT );
+    main_loop( $socket );
+}

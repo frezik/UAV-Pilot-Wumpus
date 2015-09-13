@@ -39,7 +39,7 @@ if( $@ ) {
     plan skip_all => "UAV::Pilot::SDL not installed";
 }
 else {
-    plan tests => 6;
+    plan tests => 4;
 }
 
 
@@ -62,18 +62,12 @@ my $event = UAV::Pilot::EasyEvent->new({
 $control->init_event_loop( $cv, $event );
 
 my $ack_recv = 0;
-my $checksum1_match = 0;
-my $checksum2_match = 0;
-my $msg_id_match = 0;
+my $checksum_match = 0;
 $event->add_event( 'ack_recv' => sub {
     my ($sent_packet, $ack_packet) = @_;
     $ack_recv++;
-    $checksum1_match++
-        if $sent_packet->checksum1 == $ack_packet->checksum_received1;
-    $checksum2_match++
-        if $sent_packet->checksum2 == $ack_packet->checksum_received2;
-    $msg_id_match++
-        if $sent_packet->message_id == $ack_packet->message_received_id;
+    $checksum_match++
+        if $sent_packet->checksum == $ack_packet->checksum_received;
 });
 
 my $write_time = $control->CONTROL_UPDATE_TIME;
@@ -82,9 +76,7 @@ my $test_timer; $test_timer = AnyEvent->timer(
     after => $write_duration,
     cb => sub {
         cmp_ok( $ack_recv, '>', 1, "Ack control packets" );
-        cmp_ok( $checksum1_match, '==', $ack_recv, "Checksum1 matched up" );
-        cmp_ok( $checksum2_match, '==', $ack_recv, "Checksum2 matched up" );
-        cmp_ok( $msg_id_match,    '==', $ack_recv, "Message ID matched up" );
+        cmp_ok( $checksum_match, '==', $ack_recv, "Checksum matched up" );
         $cv->send;
         $test_timer;
     },

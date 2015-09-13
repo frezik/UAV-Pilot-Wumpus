@@ -185,7 +185,6 @@ sub make_packet_queue_map_key
     # NOTE: any changes here must be reflected in
     # Packet::Ack::make_ack_packet_queue_key()
     my $key = join( $self->_PACKET_QUEUE_MAP_KEY_SEPERATOR,
-        $self->message_id,
         $self->checksum,
     );
     return $key;
