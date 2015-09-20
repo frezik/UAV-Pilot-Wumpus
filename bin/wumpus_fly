@@ -1,0 +1,101 @@
+#!/usr/bin/perl
+# Copyright (c) 2015  Timm Murray
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without 
+# modification, are permitted provided that the following conditions are met:
+# 
+#     * Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright 
+#       notice, this list of conditions and the following disclaimer in the 
+#       documentation and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# POSSIBILITY OF SUCH DAMAGE.
+use v5.14;
+use warnings;
+use AnyEvent;
+use UAV::Pilot;
+use UAV::Pilot::EasyEvent;
+use UAV::Pilot::Wumpus;
+use UAV::Pilot::Wumpus::Driver;
+use UAV::Pilot::Wumpus::Control::Event;
+use UAV::Pilot::Events;
+use UAV::Pilot::SDL::Events;
+use Getopt::Long ();
+
+
+my $IP                = '192.168.1.1';
+my $PORT = UAV::Pilot::Wumpus::DEFAULT_PORT;
+my $VIDEO_OUT         = '';
+my $DO_VIDEO          = 1;
+my $DO_JOYSTICK       = 1;
+Getopt::Long::GetOptions(
+    'host=s'      => \$IP,
+    'port=i'      => \$PORT,
+    'video'       => \$DO_VIDEO,
+    'video-out=s' => \$VIDEO_OUT,
+    'joystick'    => \$DO_JOYSTICK,
+);
+
+
+
+{
+    my $cv = AnyEvent->condvar;
+    my $events = UAV::Pilot::Events->new({
+        condvar => $cv,
+    });
+
+    say "Connecting . . . ";
+    my $driver = UAV::Pilot::Wumpus::Driver->new({
+        host => $IP,
+    });
+    $driver->connect;
+    say "Done connecting";
+
+    my $easy_event = UAV::Pilot::EasyEvent->new({
+        condvar => $cv,
+    });
+
+    my $control = UAV::Pilot::Wumpus::Control::Event->new({
+        driver       => $driver,
+        joystick_num => 0,
+    });
+    $control->init_event_loop( $cv, $easy_event );
+
+    my $sdl_events = UAV::Pilot::SDL::Events->new;
+    $events->register( $sdl_events );
+
+    # TODO launch video process
+
+    say "Running . . .";
+    $events->init_event_loop;
+    $cv->recv;
+
+    say "Closing";
+}
+
+__END__
+
+
+=head1 SYNOPSIS
+
+    wumpus_fly \
+        --host 192.168.1.1 \
+        --in /path/to/file 
+
+=head1 DESCRIPTION
+
+=head1 OPTIONS
+
+=cut
