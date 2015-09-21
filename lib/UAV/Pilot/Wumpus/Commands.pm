@@ -167,17 +167,31 @@ use constant VIDEO_EXTERNAL_STREAM_EXEC => 'wumpus_display_video.pl';
         return 1;
     }
 
-    sub turn ($)
+    sub roll ($)
     {
         my ($value) = @_;
-        $dev->turn( $value );
+        $dev->roll( $value );
         return 1;
     }
 
-    sub stop ()
+    sub pitch ($)
     {
-        $dev->throttle( 0 );
-        $dev->turn( 0 );
+        my ($value) = @_;
+        $dev->pitch( $value );
+        return 1;
+    }
+
+    sub yaw ($)
+    {
+        my ($value) = @_;
+        $dev->yaw( $value );
+        return 1;
+    }
+
+    sub level ()
+    {
+        # Leave throttle alone
+        $dev->$_( 0 ) for qw( roll pitch yaw );
         return 1;
     }
 

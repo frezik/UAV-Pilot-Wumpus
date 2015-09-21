@@ -59,28 +59,34 @@ my @TESTS = (
         cmd    => 'throttle 100;',
         expect => {
             packet_type => 'RadioOutputs',
-            ch1_out     => 100,
+            ch1_out     => 0,
             ch2_out     => 0,
+            ch3_out     => 0,
+            ch4_out     => 100,
         },
         name   => "Throttle command",
     },
     {
-        cmd    => 'turn 90;',
+        cmd    => 'roll 90;',
         expect => {
             packet_type => 'RadioOutputs',
-            ch1_out     => 100,
-            ch2_out     => 90,
+            ch1_out     => 90,
+            ch2_out     => 0,
+            ch3_out     => 0,
+            ch4_out     => 100,
         },
         name   => "Turn command (combined with previous throttle)",
     },
     {
-        cmd    => 'stop;',
+        cmd    => 'level;',
         expect => {
             packet_type => 'RadioOutputs',
             ch1_out     => 0,
             ch2_out     => 0,
+            ch3_out     => 0,
+            ch4_out     => 100,
         },
-        name   => "Stop command",
+        name   => "Level command",
     },
 );
 foreach my $test (@TESTS) {

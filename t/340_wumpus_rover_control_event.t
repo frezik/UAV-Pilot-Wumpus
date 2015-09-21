@@ -85,7 +85,7 @@ my $send_timer; $send_timer = AnyEvent->timer(
     after => $write_time,
     cb => sub {
         $control->throttle( 100 );
-        $control->turn( -50 );
+        $control->roll( 50 );
         $send_timer;
     },
 );

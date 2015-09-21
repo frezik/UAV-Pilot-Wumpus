@@ -30,7 +30,17 @@ use UAV::Pilot::Wumpus::PacketFactory;
 use IO::Socket::INET;
 
 
-has 'turn' => (
+has 'roll' => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
+has 'pitch' => (
+    is      => 'rw',
+    isa     => 'Int',
+    default => 0,
+);
+has 'yaw' => (
     is      => 'rw',
     isa     => 'Int',
     default => 0,
@@ -44,26 +54,31 @@ has 'driver' => (
     is  => 'ro',
     isa => 'UAV::Pilot::Wumpus::Driver',
 );
+has 'channel_order' => (
+    traits => ['Array'],
+    is => 'ro',
+    isa => 'ArrayRef[Str]',
+    default => sub {[qw( roll pitch yaw throttle )]},
+    handles => {
+        channels => 'elements',
+    },
+);
 
-with 'UAV::Pilot::ControlRover';
+with 'UAV::Pilot::Control';
 with 'UAV::Pilot::Logger';
 
 
 sub process_sdl_input
 {
     my ($self, $args) = @_;
-    my $turn     = $args->{roll};
-    my $throttle = $args->{throttle};
 
     # TODO Send output min/max settings in packet for initial setup, rather 
     # than hardcoding here
-    $turn = $self->_map_values( $self->JOYSTICK_MIN_AXIS_INT,
-        $self->JOYSTICK_MAX_AXIS_INT, 0, 180, $turn );
-    $throttle = $self->_map_values( $self->JOYSTICK_MIN_AXIS_INT,
-        $self->JOYSTICK_MAX_AXIS_INT, 0, 100, $throttle );
-
-    $self->turn( $turn );
-    $self->throttle( $throttle );
+    foreach ($self->channels) {
+        my $value = $self->_map_values( $self->JOYSTICK_MIN_AXIS_INT,
+            $self->JOYSTICK_MAX_AXIS_INT, 0, 100, $args->{$_} );
+        $self->$_( $value );
+    }
 
     return 1;
 }
@@ -71,10 +86,7 @@ sub process_sdl_input
 sub send_move_packet
 {
     my ($self) = @_;
-    my @channels = (
-        $self->throttle,
-        $self->turn,
-    );
+    my @channels = map $self->$_, $self->channels;
     return $self->driver->send_radio_output_packet( @channels );
 }
 

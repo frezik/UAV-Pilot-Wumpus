@@ -86,21 +86,15 @@ sub _process_sdl_input
     my ($self, $args) = @_;
     return 0 if $args->{joystick_num} != $self->joystick_num;
 
-    my $turn = sprintf( '%.0f', $self->_map_values(
-        UAV::Pilot::SDL::Joystick->MIN_AXIS_INT,
-        UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
-        -90, 90,
-        $args->{roll},
-    ) );
-    my $throttle = sprintf( '%.0f', $self->_map_values(
-        UAV::Pilot::SDL::Joystick->MIN_AXIS_INT,
-        UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
-        0, 100,
-        $args->{throttle},
-    ) );
-
-    $self->turn( $turn );
-    $self->throttle( $throttle );
+    foreach (qw( roll pitch yaw throttle )) {
+        my $value = sprintf( '%.0f', $self->_map_values(
+            UAV::Pilot::SDL::Joystick->MIN_AXIS_INT,
+            UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
+            0, 100,
+            $args->{$_},
+        ) );
+        $self->$_( $value );
+    }
 
     return 1;
 }
@@ -114,7 +108,7 @@ __END__
 
 =head1 NAME
 
-    UAV::Pilot::WumpusControl::Event
+    UAV::Pilot::Wumpus::Control::Event
 
 =head1 SYNOPSIS
 

@@ -21,7 +21,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 9;
+use Test::More tests => 12;
 use strict;
 use warnings;
 use UAV::Pilot::Control;
@@ -42,19 +42,22 @@ my $control = UAV::Pilot::Wumpus::Control->new({
 });
 isa_ok( $control => 'UAV::Pilot::Wumpus::Control' );
 does_ok( $control => 'UAV::Pilot::Control' );
-does_ok( $control => 'UAV::Pilot::ControlRover' );
 
 
 $control->throttle( 150 );
 $control->send_move_packet;
 my $throttle_packet = $driver->last_sent_packet;
 isa_ok( $throttle_packet => 'UAV::Pilot::Wumpus::Packet::RadioOutputs' );
-cmp_ok( $throttle_packet->ch1_out, '==', 150, "Throttle setting sent" );
-cmp_ok( $throttle_packet->ch2_out, '==', 0, "Not turning" );
+cmp_ok( $throttle_packet->ch1_out, '==', 0, "No Roll" );
+cmp_ok( $throttle_packet->ch2_out, '==', 0, "No Pitch" );
+cmp_ok( $throttle_packet->ch3_out, '==', 0, "No Yaw" );
+cmp_ok( $throttle_packet->ch4_out, '==', 150, "Throttle setting sent" );
 
-$control->turn( -100 );
+$control->roll( -100 );
 $control->send_move_packet;
 my $turn_packet = $driver->last_sent_packet;
 isa_ok( $turn_packet => 'UAV::Pilot::Wumpus::Packet::RadioOutputs' );
-cmp_ok( $turn_packet->ch1_out, '==', 150, "Still setting throttle" );
-cmp_ok( $turn_packet->ch2_out, '==', -100, "And now turning to the left, too" );
+cmp_ok( $turn_packet->ch1_out, '==', -100, "Set some Roll" );
+cmp_ok( $turn_packet->ch2_out, '==', 0, "Still no Pitch" );
+cmp_ok( $turn_packet->ch3_out, '==', 0, "Still no Yaw" );
+cmp_ok( $turn_packet->ch4_out, '==', 150, "Still setting throttle" );

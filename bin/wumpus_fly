@@ -76,6 +76,12 @@ Getopt::Long::GetOptions(
     my $sdl_events = UAV::Pilot::SDL::Events->new;
     $events->register( $sdl_events );
 
+    my $joystick = UAV::Pilot::SDL::Joystick->new({
+        condvar => $cv,
+        events => $easy_event,
+    });
+    $events->register( $joystick );
+
     # TODO launch video process
 
     say "Running . . .";
