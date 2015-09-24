@@ -1,0 +1,47 @@
+#!perl
+use v5.14;
+use warnings;
+use AnyEvent;
+use UAV::Pilot::Events;
+use UAV::Pilot::SDL::Events;
+use UAV::Pilot::SDL::Window;
+use UAV::Pilot::SDL::Video;
+use UAV::Pilot::Video::H264Decoder;
+use UAV::Pilot::Wumpus::Driver;
+use UAV::Pilot::Wumpus::Video;
+
+my $HOST_IP = shift or die "Need hostname/IP address to connect to\n";
+
+
+my $cv = AnyEvent->condvar;
+my $events = UAV::Pilot::Events->new({
+    condvar => $cv,
+});
+
+my $driver = UAV::Pilot::Wumpus::Driver->new({
+    host => $HOST_IP,
+});
+
+
+my $window = UAV::Pilot::SDL::Window->new;
+my $vid_display = UAV::Pilot::SDL::Video->new;
+my $h264_handler = UAV::Pilot::Video::H264Decoder->new({
+    displays => [ $vid_display ],
+});
+$vid_display->add_to_window( $window );
+
+
+my $video = UAV::Pilot::Wumpus::Video->new({
+    handlers => [$h264_handler],
+    condvar => $cv,
+    driver => $driver,
+});
+
+
+my $sdl_events = UAV::Pilot::SDL::Events->new;
+$events->register( $_ ) for $sdl_events, $window;
+$_->init_event_loop for $video, $events;
+
+
+$cv->recv;
+say "Closing";

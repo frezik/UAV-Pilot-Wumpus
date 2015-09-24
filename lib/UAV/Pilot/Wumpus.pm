@@ -31,6 +31,7 @@ use namespace::autoclean;
 # ABSTRACT: Control a UAV over WiFi with a video feed
 
 use constant DEFAULT_PORT => 49_050;
+use constant DEFAULT_VIDEO_PORT => 49_051;
 
 
 no Moose;

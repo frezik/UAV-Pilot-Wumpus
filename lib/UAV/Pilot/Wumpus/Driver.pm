@@ -28,6 +28,7 @@ use Moose;
 use namespace::autoclean;
 use UAV::Pilot::Wumpus;
 use UAV::Pilot::Wumpus::PacketFactory;
+use IO::Socket::INET;
 use Tie::IxHash;
 
 use constant MAX_PACKET_QUEUE_LENGTH => 20;
