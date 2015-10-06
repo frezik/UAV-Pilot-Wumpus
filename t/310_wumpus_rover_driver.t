@@ -21,7 +21,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 9;
+use Test::More tests => 12;
 use v5.14;
 use UAV::Pilot::Wumpus::Driver::Mock;
 use Test::Moose;
@@ -38,15 +38,18 @@ ok( $wumpus->connect, "Connect to Wumpus" );
 my $startup_request_packet = $wumpus->last_sent_packet;
 isa_ok( $startup_request_packet
     => 'UAV::Pilot::Wumpus::Packet::StartupRequest' );
+cmp_ok( $startup_request_packet->packet_count, '==', 0 );
 
 $wumpus->send_radio_output_packet( 150 );
 my $radio1_packet = $wumpus->last_sent_packet;
 isa_ok( $radio1_packet => 'UAV::Pilot::Wumpus::Packet::RadioOutputs' );
 cmp_ok( $radio1_packet->ch1_out, '==', 150, "Channel1 set" );
+cmp_ok( $radio1_packet->packet_count, '==', 1 );
 
 $wumpus->send_radio_output_packet( 150, 70 );
 my $radio2_packet = $wumpus->last_sent_packet;
 cmp_ok( $radio2_packet->ch1_out, '==', 150, "Channel1 set" );
 cmp_ok( $radio2_packet->ch2_out, '==', 70,  "Channel2 set" );
+cmp_ok( $radio2_packet->packet_count, '==', 2 );
 
 # TODO read packets, handle AckRequest

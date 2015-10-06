@@ -43,6 +43,15 @@ has 'host' => (
     is  => 'ro',
     isa => 'Str',
 );
+has '_session_packet_count' => (
+    traits => [ 'Counter' ],
+    is => 'ro',
+    isa => 'Int',
+    default => 0,
+    handles => {
+        _inc_packet_count => 'inc',
+    },
+);
 has '_socket' => (
     is  => 'rw',
     isa => 'IO::Socket::INET',
@@ -123,9 +132,11 @@ sub _init_connection
 sub _send_packet
 {
     my ($self, $packet) = @_;
+    $packet->set_packet_count( $self->_session_packet_count );
     $packet->make_checksum_clean;
     $packet->write( $self->_socket );
 
+    $self->_inc_packet_count;
     return 1;
 }
 

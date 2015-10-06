@@ -42,8 +42,9 @@ has 'version' => (
     default => 0x01,
 );
 has 'packet_count' => (
-    is     => 'rw',
+    is     => 'ro',
     isa    => 'Int',
+    writer => 'set_packet_count',
 );
 has 'checksum' => (
     is     => 'ro',

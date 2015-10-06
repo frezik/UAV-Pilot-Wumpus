@@ -93,7 +93,7 @@ my $fresh_packet = UAV::Pilot::Wumpus::PacketFactory->fresh_packet(
 isa_ok( $fresh_packet => 'UAV::Pilot::Wumpus::Packet::Status' );
 cmp_ok( $fresh_packet->message_id, '==', 0x07, "Message ID set" );
 
-$fresh_packet->packet_count( 3 );
+$fresh_packet->set_packet_count( 3 );
 $fresh_packet->took_hit( 1 );
 $fresh_packet->batt_level( 220 );
 $fresh_packet->shield_level( 2**15 - 5 );

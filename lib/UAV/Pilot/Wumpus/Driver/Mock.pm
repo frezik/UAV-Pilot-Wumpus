@@ -46,6 +46,7 @@ sub _init_connection
 
 after '_send_packet' => sub {
     my ($self, $packet) = @_;
+    $packet->set_packet_count( $self->_session_packet_count );
     $packet->make_checksum_clean;
     $self->_add_to_packet_queue( $packet );
 
@@ -54,6 +55,7 @@ after '_send_packet' => sub {
     $ack->make_checksum_clean;
 
     $self->_process_ack( $ack );
+    $self->_inc_packet_count;
     return 1;
 };
 
