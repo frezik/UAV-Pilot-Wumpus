@@ -55,24 +55,12 @@ use constant MESSAGE_ID_CLASS_MAP => {
 sub read_packet
 {
     my ($self, $packet) = @_;
-    my @packet = unpack 'C*', $packet;
-
-    my $preamble       = ($packet[0] << 8 ) | $packet[1];
+    my ($preamble, $version, $packet_count, $message_id, $payload_length,
+        , $checksum, @payload) = unpack 'n C N C N n C*', $packet;
     UAV::Pilot::Wumpus::Exception::BadHeader->throw({
         got_header => $preamble,
     }) if $self->PREAMBLE != $preamble;
 
-    my $version = $packet[2];
-    my $message_id = $packet[3];
-    my $payload_length = ($packet[4] << 24)
-        | ($packet[5] << 16)
-        | ($packet[6] << 8)
-        | $packet[7];
-    my $checksum = ($packet[8] << 8) | $packet[9];
-    my $last_payload_i = (10 + $payload_length) - 1;
-    my @payload = $last_payload_i >= 10
-        ? @packet[10 .. $last_payload_i]
-        : ();
 
     my ($expect_checksum1, $expect_checksum2)
         = UAV::Pilot->checksum_fletcher8(
@@ -92,6 +80,7 @@ sub read_packet
         . $self->MESSAGE_ID_CLASS_MAP->{$message_id};
     my $new_packet = $class->new({
         preamble  => $preamble,
+        packet_count => $packet_count,
         version   => $version,
         checksum => $checksum,
         payload   => \@payload,

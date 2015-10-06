@@ -39,7 +39,11 @@ has 'preamble' => (
 has 'version' => (
     is      => 'rw',
     isa     => 'Int',
-    default => 0x00,
+    default => 0x01,
+);
+has 'packet_count' => (
+    is     => 'rw',
+    isa    => 'Int',
 );
 has 'checksum' => (
     is     => 'ro',
@@ -105,9 +109,10 @@ sub write
 sub make_byte_vector
 {
     my ($self) = @_;
-    my $packet = pack 'n C C N n C*',
+    my $packet = pack 'n C N C N n C*',
         $self->preamble,
         $self->version,
+        $self->packet_count,
         $self->message_id,
         $self->payload_length,
         $self->checksum,
@@ -254,6 +259,10 @@ Fixed bytes that start every packet
 
 Protocol version
 
+=head2 packet_count
+
+The count of this packet in the stream.
+
 =head2 checksum
 
 Checksum value
@@ -280,7 +289,9 @@ is followed by:
 
 =over 4
 
-=item * 1 byte - Version (this document is version 0x00)
+=item * 1 byte - Version (this document is version 0x01)
+
+=item * 4 bytes - Packet count
 
 =item * 1 byte - Message ID
 
@@ -302,6 +313,10 @@ followed by RadioOutput messages. During this time, the server can be
 sending Status and VideoStream messages. Either side may also send a 
 AckRequest at any time, with the receiving end replying with Ack in a 
 timely fashion.
+
+The Packet Count is incremented for each packet sent by the given side. 
+Packets with a count lower than the highest count seen during this 
+session should be discarded.
 
 =head2 Message IDs
 

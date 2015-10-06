@@ -29,12 +29,14 @@ use Moose;
 use namespace::autoclean;
 use UAV::Pilot::Exceptions;
 use UAV::Pilot::Video::H264Handler;
+use IO::Socket::Multicast;
+use Digest::Adler32::XS;
 
 use constant BUF_READ_SIZE                 => 4096;
 use constant WUMP_VIDEO_MAGIC_NUMBER       => 0xFB42;
 use constant WUMP_VIDEO_MAGIC_NUMBER_ARRAY => [ 0xFB, 0x42 ];
 use constant WUMP_HEADER_SIZE              => 32;
-use constant WUMP_VERSION                  => 0x0000;
+use constant WUMP_VERSION                  => 0x0001;
 
 use constant {
     CODEC_TYPE_NULL  => 0,
@@ -46,10 +48,13 @@ use constant {
     _MODE_WUMP_HEADER   => 0,
     _MODE_FRAME         => 1,
     _MODE_NEXT_WUMP     => 2,
+    _MODE_FRAME_DROP    => 3,
 };
 
 use constant {
-    FLAG_HEARTBEAT => 0,
+    FLAG_RESERVED => 0,
+    FLAG_KEYFRAME => 1,
+    FLAG_FRAME_COUNT_OVERFLOWED => 2,
 };
 
 
@@ -67,10 +72,6 @@ has 'handlers' => (
 has 'condvar' => (
     is  => 'ro',
     isa => 'AnyEvent::CondVar',
-);
-has 'driver' => (
-    is  => 'ro',
-    isa => 'UAV::Pilot::Wumpus::Driver',
 );
 has 'frames_processed' => (
     traits  => ['Number'],
@@ -110,6 +111,17 @@ has '_last_wump_header' => (
     isa     => 'HashRef[Item]',
     default => sub {{}},
 );
+has '_frame_count_seen' => (
+    is => 'ro',
+    isa => 'Int',
+    default => 0,
+    writer => '_set_frame_count_seen',
+);
+has '_digest' => (
+    is => 'ro',
+    isa => 'Item',
+    default => sub { Digest::Adler32::XS->new },
+);
 
 
 sub BUILDARGS
@@ -118,7 +130,8 @@ sub BUILDARGS
     my $io = $class->_build_io( $args );
 
     $$args{'_io'} = $io;
-    delete $$args{'host'};
+    delete $$args{'multicast_ip'};
+    delete $$args{'multicast_iface'};
     delete $$args{'port'};
     return $args;
 }
@@ -135,6 +148,7 @@ sub init_event_loop
             $io_event;
         },
     );
+
     return 1;
 }
 
@@ -155,7 +169,10 @@ sub _read_wump_header
     $packet{width}        = UAV::Pilot->convert_16bit_BE( @bytes[14,15] );
     $packet{height}       = UAV::Pilot->convert_16bit_BE( @bytes[16,17] );
     $packet{checksum}     = UAV::Pilot->convert_32bit_BE( @bytes[18..21] );
-    # 10 bytes reserved
+    $packet{frame_count}  = UAV::Pilot->convert_32bit_BE( @bytes[22..25] );
+    # 6 bytes reserved
+
+    my $is_frame_count_overflowed = 0;
 
     if( $packet{magic_number} != $self->WUMP_VIDEO_MAGIC_NUMBER ) {
         $self->_logger->error( "Bad Wump header.  Got [$packet{magic_number}],"
@@ -163,9 +180,9 @@ sub _read_wump_header
         $self->_mode( $self->_MODE_NEXT_WUMP );
         return $self->_read_to_next_wump_header;
     }
-    if( $packet{version} > $self->WUMP_VERSION ) {
+    if( $packet{version} != $self->WUMP_VERSION ) {
         $self->_logger->error( "Got Wumpus Video version [$packet{version}]"
-            . ", but only support up to version [" . $self->WUMP_VERSION . "]"
+            . ", but only supports version [" . $self->WUMP_VERSION . "]"
         );
         $self->_mode( $self->_MODE_NEXT_WUMP );
         return $self->_read_to_next_wump_header;
@@ -175,8 +192,19 @@ sub _read_wump_header
         $self->_mode( $self->_MODE_NEXT_WUMP );
         return $self->_read_to_next_wump_header;
     }
-    if( $packet{flags} & (1 << $self->FLAG_HEARTBEAT) ) {
-        $self->_send_heartbeat( $packet{checksum} );
+    if( $packet{flags} & (1 << $self->FLAG_FRAME_COUNT_OVERFLOWED) ) {
+        $is_frame_count_overflowed = 1;
+    }
+
+    if( 
+        (! $is_frame_count_overflowed)
+        && ($packet{frame_count} <= $self->_frame_count_seen ) 
+    ) {
+        $self->_logger->info( "Received frame count $packet{frame_count}, but"
+            . " we have seen count " . $self->_frame_count_seen
+            . ", so dropping this frame" );
+        $self->_mode( $self->_MODE_FRAME_DROP );
+        return $self->_read_frame_drop;
     }
 
     $self->_logger->info( "Received frame " . $self->frames_processed
@@ -221,21 +249,53 @@ sub _read_frame
         return 1;
     }
 
-    # TODO verify checksum (Adler32)
-
     my @frame = $self->_byte_buffer_splice( 0, $frame_size );
+
+    my $digest = $self->_digest;
+    $digest->add( @frame );
+    my $expected_checksum = $header{checksum};
+    my $got_checksum = $digest->digest;
+    if( $got_checksum != $expected_checksum ) {
+        $self->_logger->warn( "Got checksum " . sprintf( q{%08x}, $got_checksum )
+            . ", expected checksum " . sprintf( q{%08x}, $expected_checksum )
+            . ", dropping frame" );
+    }
+    else {
+        $self->_logger->info( "Got expected checksum "
+            . sprintf( q{%08x}, $expected_checksum ) );
+    }
+
     foreach my $handler (@{ $self->handlers }) {
-        $handler->process_h264_frame(
-            \@frame,
-            # Redundant width/height in order to fill both width/height 
-            # and encoded width/height params
-            @header{qw{
-                width
-                height
-                width
-                height
-            }}
-        );
+        eval { $handler->process_h264_frame(
+                \@frame,
+                # Redundant width/height in order to fill both width/height 
+                # and encoded width/height params
+                @header{qw{
+                    width
+                    height
+                    width
+                    height
+                }}
+        ) };
+        if( $@ ) {
+            $self->_logger->error( "Error processing frame: $@" );
+        }
+    }
+
+    $self->_mode( $self->_MODE_WUMP_HEADER );
+    return $self->_read_wump_header;
+}
+
+sub _read_frame_drop
+{
+    my ($self) = @_;
+    my %header = %{ $self->_last_wump_header };
+    my $frame_size = $header{length};
+    if( $self->_byte_buffer_size < $frame_size ) {
+        $self->_logger->info( "Need $frame_size bytes to read next frame"
+            . ", but only " . $self->_byte_buffer_size . " available"
+            . ", waiting for next read" );
+        return 1;
     }
 
     $self->_mode( $self->_MODE_WUMP_HEADER );
@@ -261,6 +321,9 @@ sub _process_io
     elsif( $self->_mode == $self->_MODE_NEXT_WUMP ) {
         $self->_read_to_next_wump_header;
     }
+    elsif( $self->_mode == $self->_MODE_FRAME_DROP ) {
+        $self->_read_frame_drop;
+    }
 
     return 1;
 }
@@ -268,31 +331,19 @@ sub _process_io
 sub _build_io
 {
     my ($class, $args) = @_;
-    my $driver = $$args{driver};
-    my $host   = $driver->host;
-    my $port   = UAV::Pilot::Wumpus->DEFAULT_VIDEO_PORT;
+    my $multicast_ip = $args->{multicast_ip};
+    my $multicast_iface = $args->{multicast_iface};
+    my $port = UAV::Pilot::Wumpus->DEFAULT_VIDEO_PORT;
 
-    my $io = IO::Socket::INET->new(
-        PeerAddr  => $host,
-        PeerPort  => $port,
-        ReuseAddr => 1,
-        Blocking  => 0,
+    my $io = IO::Socket::Multicast->new(
+        LocalPort => $port,
     ) or UAV::Pilot::IOException->throw(
-        error => "Could not connect to $host:$port for video: $@",
+        error => "Could not start multicast listener on port $port: $@",
     );
+    $io->mcast_add( $multicast_ip, $multicast_iface );
     return $io;
 }
 
-sub _send_heartbeat
-{
-    my ($self, $checksum) = @_;
-    $self->_logger->info( "Sending heartbeat packet for checksum [$checksum]" );
-    my $output = pack 'nN'
-        ,$self->WUMP_VIDEO_MAGIC_NUMBER
-        ,$checksum;
-    $self->_io->write( $output );
-    return 1;
-}
 
 
 no Moose;

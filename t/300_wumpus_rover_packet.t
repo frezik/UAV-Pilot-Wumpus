@@ -21,7 +21,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 94;
+use Test::More tests => 95;
 use strict;
 use warnings;
 use UAV::Pilot::Wumpus::PacketFactory;
@@ -30,7 +30,7 @@ use UAV::Pilot::Exceptions;
 use Test::Moose;
 
 
-my $bad_header = make_packet( '3445', '00', '00', '00000004', '030C',
+my $bad_header = make_packet( '3445', '01', '00000000', '00', '00000004', '030C',
     '01000000' );
 eval {
     local $SIG{__WARN__} = sub {}; # Temporarily suppress warnings
@@ -47,7 +47,8 @@ else {
 
 my $bad_checksum = make_packet(
     'BF24',   # Preamble
-    '00',     # Version *
+    '01',     # Version *
+    '00000001',   # Packet count
     '00',     # Message ID *
     '00000002', # Length of Payload *
     '030D',   # Checksum (starred fields are fed into checksum)
@@ -60,7 +61,7 @@ eval {
 if( $@ && $@->isa( 'UAV::Pilot::Wumpus::Exception::BadChecksum' ) ) {
     pass( 'Caught Bad Checksum exception' );
     cmp_ok( $@->got_checksum, '==', 0x030D, "BadChecksum exception has got_checksum value" );
-    cmp_ok( $@->expected_checksum, '==', 0x0308, "BadChecksum exception has expected_checksum value" );
+    cmp_ok( $@->expected_checksum, '==', 0x040D, "BadChecksum exception has expected_checksum value" );
 }
 else {
     fail( 'Did not catch Bad Header exception (got: ' . $@ . ')' );
@@ -70,12 +71,13 @@ else {
 
 
 my $good_packet = make_packet( 
-    'BF24', '00', '00', '00000002', '0308', '0100', );
+    'BF24', '01', '00000002', '00', '00000002', '040D', '0100', );
 my $packet = UAV::Pilot::Wumpus::PacketFactory->read_packet( $good_packet );
 does_ok( $packet => 'UAV::Pilot::Wumpus::Packet' );
 isa_ok( $packet => 'UAV::Pilot::Wumpus::Packet::Ack' );
 cmp_ok( $packet->preamble,            '==', 0xBF24, "Preamble set" );
-cmp_ok( $packet->version,             '==', 0x00,   "Version set" );
+cmp_ok( $packet->packet_count,        '==', 0x0002, "Packet count set" );
+cmp_ok( $packet->version,             '==', 0x01,   "Version set" );
 cmp_ok( $packet->message_id,          '==', 0x00,   "Message ID set" );
 cmp_ok( $packet->payload_length,      '==', 0x02,   "Payload length set" );
 cmp_ok( $packet->checksum_received,  '==', 0x0100,   "Checksum Received" );
@@ -91,12 +93,14 @@ my $fresh_packet = UAV::Pilot::Wumpus::PacketFactory->fresh_packet(
 isa_ok( $fresh_packet => 'UAV::Pilot::Wumpus::Packet::Status' );
 cmp_ok( $fresh_packet->message_id, '==', 0x07, "Message ID set" );
 
+$fresh_packet->packet_count( 3 );
 $fresh_packet->took_hit( 1 );
 $fresh_packet->batt_level( 220 );
 $fresh_packet->shield_level( 2**15 - 5 );
 ok(! $fresh_packet->_is_checksum_clean, "Checksum no longer correct" );
 
-my $expect_packet = make_packet( 'BF24', '00', '07', '00000004', '62cf', '01DC7FFB' );
+my $expect_packet = make_packet( 'BF24', '01', '00000003', '07', '00000004', '63d6',
+    '01DC7FFB' );
 my $got_packet = to_hex_string( write_packet( $fresh_packet ) );
 cmp_ok( $got_packet, 'eq', to_hex_string($expect_packet),
     "Wrote status packet" );
@@ -107,20 +111,20 @@ my @TESTS = (
     # Each entry has 2 tests plus the number of keys in 'fields'
     {
         expect_class => 'StartupRequest',
-        packet => make_packet( 'BF24', '00', '05', '00000000', '050A' ),
+        packet => make_packet( 'BF24', '01', '00000004', '05', '00000000', '060d' ),
         fields => {},
     },
     {
         expect_class => 'Startup',
-        packet => make_packet( 'BF24', '00', '04', '00000001',
-            '060F', '01' ),
+        packet => make_packet( 'BF24', '01', '00000005', '04', '00000001',
+            '0713', '01' ),
         fields => {
             ok => 0x01,
         },
     },
     {
         expect_class => 'RadioMinMax',
-        packet => make_packet( 'BF24', '00', '02', '00000040', '72A4',
+        packet => make_packet( 'BF24', '01', '00000006', '02', '00000040', '73e7',
             '0A', 'A0',
             '0B', 'B0',
             '0C', 'C0',
@@ -191,7 +195,7 @@ my @TESTS = (
     },
     {
         expect_class => 'RadioOutputs',
-        packet => make_packet( 'BF24', '00', '03', '00000020', '3BF6',
+        packet => make_packet( 'BF24', '01', '00000007', '03', '00000020', '3c19',
             '0A', 'A0',
             '0B', 'B0',
             '0C', 'C0',
@@ -230,7 +234,7 @@ my @TESTS = (
     },
     {
         expect_class => 'AckRequest',
-        packet => make_packet( 'BF24', '00', '01', '00000004', '0B27',
+        packet => make_packet( 'BF24', '01', '00000008', '01', '00000004', '0c2e',
             '01010202', ),
         fields => {
             payload_data => 0x01010202,
@@ -238,7 +242,7 @@ my @TESTS = (
     },
     {
         expect_class => 'Ack',
-        packet => make_packet( 'BF24', '00', '00', '00000002', '0409',
+        packet => make_packet( 'BF24', '01', '00000009', '00', '00000002', '050e',
             '0101', ),
         fields => {
             checksum_received=> 0x0101,
@@ -246,7 +250,7 @@ my @TESTS = (
     },
     {
         expect_class => 'VideoStream',
-        packet => make_packet( 'BF24', '00', '06', '0000000A', 'DB95',
+        packet => make_packet( 'BF24', '01', '0000000A', '06', '0000000A', 'dca2',
             '00', '0010', '0010', '11223344', '01', ),
         fields => {
             codec => 0x00,
@@ -258,7 +262,8 @@ my @TESTS = (
     },
     {
         expect_class => 'Status',
-        packet => make_packet( 'BF24', '00', '07', '00000004', '62CF', '01DC7FFB' ),
+        packet => make_packet( 'BF24', '01', '0000000B', '07', '00000004', '63d6',
+            '01DC7FFB' ),
         fields => {
             flags => 0x01,
             batt_level => 0xDC,
@@ -289,11 +294,11 @@ foreach (@TESTS) {
         "$short_class writes packet correctly" );
 }
 
-my $too_long_packet = make_packet( 'BF24', '00', '01', '00000000', '0102', 
+my $too_long_packet = make_packet( 'BF24', '01', '0000000C', '01', '00000000', '0cd4', 
     '01123401C20000' );
 my $long_packet = UAV::Pilot::Wumpus::PacketFactory->read_packet(
     $too_long_packet );
-cmp_ok( $long_packet->checksum, '==', 0x0102,
+cmp_ok( $long_packet->checksum, '==', 0x0cd4,
     'Checksum correct for long packet' );
 
 

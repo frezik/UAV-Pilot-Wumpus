@@ -21,7 +21,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
 # POSSIBILITY OF SUCH DAMAGE.
-use Test::More tests => 4;
+use Test::More 'skip_all' => 'Decide what to do with video code';
+#use Test::More tests => 4;
 use v5.14;
 use UAV::Pilot;
 use UAV::Pilot::Wumpus::Driver::Mock;
