@@ -294,11 +294,11 @@ foreach (@TESTS) {
         "$short_class writes packet correctly" );
 }
 
-my $too_long_packet = make_packet( 'BF24', '01', '0000000C', '01', '00000000', '0cd4', 
+my $too_long_packet = make_packet( 'BF24', '01', '0000000C', '01', '00000001', '040a', 
     '01123401C20000' );
 my $long_packet = UAV::Pilot::Wumpus::PacketFactory->read_packet(
     $too_long_packet );
-cmp_ok( $long_packet->checksum, '==', 0x0cd4,
+cmp_ok( $long_packet->checksum, '==', 0x040a,
     'Checksum correct for long packet' );
 
 

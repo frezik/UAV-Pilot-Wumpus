@@ -61,6 +61,9 @@ sub read_packet
         got_header => $preamble,
     }) if $self->PREAMBLE != $preamble;
 
+    # Cut off payload if we get more than expected
+    $payload_length = scalar(@payload) if $payload_length >= scalar(@payload);
+    @payload = @payload[0 .. $payload_length - 1];
 
     my ($expect_checksum1, $expect_checksum2)
         = UAV::Pilot->checksum_fletcher8(

@@ -64,8 +64,6 @@ sub to_string
         . $self->got_checksum . ")";
 }
 
-use overload '""' => \&to_string;
-
 
 no Moose;
 __PACKAGE__->meta->make_immutable;

@@ -101,6 +101,10 @@ sub write
     my ($self, $fh) = @_;
     $self->make_checksum_clean;
 
+    $self->_logger->info( "Sending packet with msg ID "
+        . $self->message_id . ', checksum ' . $self->checksum
+        . ', length ' . $self->payload_length );
+
     my $packet = $self->make_byte_vector;
     $fh->print( $packet );
 
