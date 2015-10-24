@@ -86,15 +86,23 @@ sub _process_sdl_input
     my ($self, $args) = @_;
     return 0 if $args->{joystick_num} != $self->joystick_num;
 
+    my %sdl_values;
+
     foreach (qw( roll pitch yaw throttle )) {
+        my $raw_value = $args->{$_};
+        $sdl_values{$_} = $raw_value;
+        
         my $value = sprintf( '%.0f', $self->_map_values(
             UAV::Pilot::SDL::Joystick->MIN_AXIS_INT,
             UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
             0, 100,
-            $args->{$_},
+            $raw_value,
         ) );
         $self->$_( $value );
     }
+
+    $self->_logger->info( "Input--roll ($sdl_values{roll}), pitch ($sdl_values{pitch})"
+        . ", yaw ($sdl_values{yaw}), throttle ($sdl_values{throttle})" );
 
     return 1;
 }
