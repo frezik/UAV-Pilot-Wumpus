@@ -35,7 +35,7 @@ if( $@ ) {
     plan skip_all => "UAV::Pilot::SDL not installed";
 }
 else {
-    plan tests => 4;
+    plan tests => 5;
 }
 
 
@@ -62,8 +62,8 @@ $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     throttle     => UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
     buttons      => [ 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ],
 });
-cmp_ok( $dev->roll,     '==', 100, "Set roll from joystick" );
-cmp_ok( $dev->throttle, '==', 100, "Set throttle from joystick" );
+cmp_ok( $dev->roll,     '==', 2**16 - 1, "Set roll from joystick" );
+cmp_ok( $dev->throttle, '==', 2**16 - 1, "Set throttle from joystick" );
 
 $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     joystick_num => 1,
@@ -73,7 +73,7 @@ $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     throttle     => 0,
     buttons      => [ 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, ],
 });
-cmp_ok( $dev->throttle, '==', 100, "Only picks up events from joystick 0" );
+cmp_ok( $dev->throttle, '==', 2**16 - 1, "Only picks up events from joystick 0" );
 
 $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     joystick_num => 0,
@@ -84,3 +84,13 @@ $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     buttons      => [ 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ],
 });
 cmp_ok( $dev->roll, '==', 0, "Set turn from joystick" );
+
+$event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
+    joystick_num => 0,
+    roll         => 0,
+    pitch        => 0,
+    yaw          => 0,
+    throttle     => UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
+    buttons      => [ 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ],
+});
+cmp_ok( $dev->roll, '==', 32767, "Set turn from joystick, halfway point" );

@@ -95,7 +95,7 @@ sub _process_sdl_input
         my $value = sprintf( '%.0f', $self->_map_values(
             UAV::Pilot::SDL::Joystick->MIN_AXIS_INT,
             UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
-            0, 100,
+            0, 2**16 - 1,
             $raw_value,
         ) );
         $self->$_( $value );

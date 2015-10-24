@@ -93,8 +93,8 @@ sub send_move_packet
 sub _map_values
 {
     my ($self, $in_min, $in_max, $out_min, $out_max, $in) = @_;
-    my $output = ($in - $in_min) / ($in_max - $in_min)
-        * ($out_max - $out_min) + $out_min;
+    my $output = $out_min + ($out_max - $out_min)
+        * ($in - $in_min) / ($in_max - $in_min);
     return $output
 }
 
