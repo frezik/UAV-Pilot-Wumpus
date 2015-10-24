@@ -93,4 +93,4 @@ $event->send_event( UAV::Pilot::SDL::Joystick->EVENT_NAME, {
     throttle     => UAV::Pilot::SDL::Joystick->MAX_AXIS_INT,
     buttons      => [ 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ],
 });
-cmp_ok( $dev->roll, '==', 32767, "Set turn from joystick, halfway point" );
+cmp_ok( $dev->roll, '==', 32768, "Set turn from joystick, halfway point" );
