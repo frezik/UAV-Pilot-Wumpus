@@ -289,7 +289,7 @@ in bytes of that field.
 
 =head1 PROTOCOL
 
-Each data packet starts with a 32-bit magic number (C<0xBF24>), which 
+Each data packet starts with a 16-bit magic number (C<0xBF24>), which 
 is followed by:
 
 =over 4
